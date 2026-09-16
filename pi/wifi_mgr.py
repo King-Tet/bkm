@@ -68,6 +68,14 @@ class WiFiManager:
         """
         log.info("WiFiManager: starting connectivity sequence")
 
+        # 0. Check if already connected (e.g. established by OS on boot)
+        curr_ip = await self._get_ip()
+        if curr_ip and not curr_ip.startswith("127.") and not curr_ip.startswith("192.168.50."):
+            ssid = await self._get_current_ssid()
+            self._connected_ssid = ssid or "Active WiFi"
+            log.info("Already connected to network: SSID=%s, IP=%s", self._connected_ssid, curr_ip)
+            return True
+
         # 1. Try saved networks
         saved = await self.state.list_wifi_networks()
         if saved:
@@ -190,6 +198,22 @@ class WiFiManager:
         except Exception:
             return False
 
+    async def _get_current_ssid(self) -> str:
+        try:
+            out = await _run(["iwgetid", "-r"])
+            if out.strip():
+                return out.strip()
+        except Exception:
+            pass
+        try:
+            out = await _run(["wpa_cli", "-i", IFACE, "status"])
+            for line in out.splitlines():
+                if line.strip().startswith("ssid="):
+                    return line.strip().split("=", 1)[1]
+        except Exception:
+            pass
+        return ""
+
     async def _get_ip(self) -> str:
         try:
             out = await _run(["hostname", "-I"])
@@ -268,15 +292,18 @@ class WiFiManager:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 async def _run(cmd: list[str]) -> str:
-    proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    stdout, stderr = await proc.communicate()
-    if proc.returncode != 0:
-        raise RuntimeError(stderr.decode().strip())
-    return stdout.decode()
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+        if proc.returncode != 0:
+            raise RuntimeError(stderr.decode().strip() or f"Command failed: {cmd[0]}")
+        return stdout.decode()
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"Command not found: {cmd[0]}") from exc
 
 
 def _parse_iwlist(raw: str) -> list[ScanResult]:

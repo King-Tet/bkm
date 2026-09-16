@@ -25,7 +25,9 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-WEB_DIR = Path(__file__).parent / "web"
+_var_web = Path("/var/lib/bt-kbm/web")
+_local_web = Path(__file__).parent / "web"
+WEB_DIR = _var_web if _var_web.exists() and (_var_web / "index.html").exists() else _local_web
 WS_CLIENTS: set[web.WebSocketResponse] = set()
 
 
@@ -178,6 +180,13 @@ class WebServer:
 
     async def _handle_index(self, _: web.Request) -> web.Response:
         p = WEB_DIR / "index.html"
+        if not p.exists():
+            for candidate in (Path("/var/lib/bt-kbm/web/index.html"), Path(__file__).parent / "web" / "index.html"):
+                if candidate.exists():
+                    p = candidate
+                    break
+        if not p.exists():
+            return web.Response(status=500, text="BT-KBM dashboard static files (index.html) not found.")
         return web.Response(body=p.read_bytes(), content_type="text/html")
 
     async def _handle_static(self, request: web.Request) -> web.Response:

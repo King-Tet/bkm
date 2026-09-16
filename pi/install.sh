@@ -135,6 +135,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 cp -r "$SCRIPT_DIR/"*.py "$INSTALL_DIR/"
 cp    "$SCRIPT_DIR/sdp_record.xml" "$INSTALL_DIR/"
+cp -r "$SCRIPT_DIR/web" "$INSTALL_DIR/"
 cp -r "$SCRIPT_DIR/web/"* "$DATA_DIR/web/"
 
 success "Files copied to $INSTALL_DIR"

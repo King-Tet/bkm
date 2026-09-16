@@ -43,63 +43,15 @@ async def main() -> None:
         await gpio.start()
         await gpio.set_green_state(GreenState.STATE_CHANGE)
 
-        # ── WiFi ──────────────────────────────────────────────────────────────
-        wifi = WiFiManager(state)
-        log.info("Starting WiFi…")
-        wifi_ok = await wifi.start()
-        if wifi_ok:
-            await gpio.set_wifi_state(WifiState.NORMAL)
-            log.info("WiFi connected: %s", wifi.connected_ssid)
-        else:
-            await gpio.set_wifi_state(WifiState.AP_MODE)
-            log.info("WiFi AP mode active")
-
-        # ── Bluetooth HID ─────────────────────────────────────────────────────
+        # ── Components ────────────────────────────────────────────────────────
         hid = BtHIDDaemon(state)
-
-        async def on_bt_event(event: str, mac: str | None) -> None:
-            if event == "connected":
-                await gpio.set_bluetooth_state(BlueState.CONNECTED)
-                await state.log_action("bt_connected", {"mac": mac})
-                await server.broadcast({
-                    "type": "bt_state",
-                    "connected": True,
-                    "mac": mac,
-                    "discoverable": False,
-                })
-                log.info("BT connected: %s", mac)
-                # Load nickname for broadcast
-                dev = await state.get_device(mac or "")
-                if dev:
-                    await server.broadcast({"type": "device_update", "device": dev})
-
-            elif event == "disconnected":
-                await gpio.set_bluetooth_state(BlueState.IDLE)
-                await state.log_action("bt_disconnected", {"mac": mac})
-                await server.broadcast({"type": "bt_state", "connected": False, "mac": mac})
-                log.info("BT disconnected: %s", mac)
-                # Auto-reconnect?
-                auto = await state.get_setting("auto_reconnect_bt", "1")
-                if auto == "1" and mac:
-                    dev = await state.get_device(mac)
-                    if dev and dev.get("auto_connect"):
-                        log.info("Auto-reconnecting to %s…", mac)
-                        asyncio.create_task(_auto_reconnect(hid, mac))
-
-            elif event == "pairing_started":
-                await gpio.set_bluetooth_state(BlueState.DISCOVERABLE)
-
-        hid.on_connection(on_bt_event)
-        hid.on_disconnection(on_bt_event)
-        await hid.start()
-        await gpio.set_bluetooth_state(BlueState.IDLE)
-
-        # ── Macro Engine ──────────────────────────────────────────────────────
+        wifi = WiFiManager(state)
         macros = MacroEngine(hid, state)
 
-        # ── Web Server ────────────────────────────────────────────────────────
+        # ── Web Server (Start first so dashboard is immediately accessible) ───
         server = WebServer(state, hid, gpio, wifi, macros)
         await server.start()
+        log.info("Web server listening on port 8080")
 
         # ── GPIO Button callback ──────────────────────────────────────────────
         async def button_pressed(press_type: str) -> None:
@@ -112,7 +64,6 @@ async def main() -> None:
                     await hid.start_pairing()
                     await gpio.set_bluetooth_state(BlueState.DISCOVERABLE)
                     log.info("Button: started pairing")
-            # Long press: currently reserved
             await server.broadcast({
                 "type": "bt_state",
                 "discoverable": hid.discoverable,
@@ -120,6 +71,57 @@ async def main() -> None:
             })
 
         gpio.set_button_callback(button_pressed)
+
+        # ── WiFi init ─────────────────────────────────────────────────────────
+        try:
+            wifi_ok = await wifi.start()
+            if wifi_ok:
+                await gpio.set_wifi_state(WifiState.NORMAL)
+                log.info("WiFi connected: %s", wifi.connected_ssid)
+            else:
+                await gpio.set_wifi_state(WifiState.AP_MODE)
+                log.info("WiFi AP mode active")
+        except Exception as exc:
+            log.error("WiFi startup warning: %s", exc)
+
+        # ── Bluetooth HID init ────────────────────────────────────────────────
+        try:
+            async def on_bt_event(event: str, mac: str | None) -> None:
+                if event == "connected":
+                    await gpio.set_bluetooth_state(BlueState.CONNECTED)
+                    await state.log_action("bt_connected", {"mac": mac})
+                    await server.broadcast({
+                        "type": "bt_state",
+                        "connected": True,
+                        "mac": mac,
+                        "discoverable": False,
+                    })
+                    log.info("BT connected: %s", mac)
+                    dev = await state.get_device(mac or "")
+                    if dev:
+                        await server.broadcast({"type": "device_update", "device": dev})
+
+                elif event == "disconnected":
+                    await gpio.set_bluetooth_state(BlueState.IDLE)
+                    await state.log_action("bt_disconnected", {"mac": mac})
+                    await server.broadcast({"type": "bt_state", "connected": False, "mac": mac})
+                    log.info("BT disconnected: %s", mac)
+                    auto = await state.get_setting("auto_reconnect_bt", "1")
+                    if auto == "1" and mac:
+                        dev = await state.get_device(mac)
+                        if dev and dev.get("auto_connect"):
+                            log.info("Auto-reconnecting to %s…", mac)
+                            asyncio.create_task(_auto_reconnect(hid, mac))
+
+                elif event == "pairing_started":
+                    await gpio.set_bluetooth_state(BlueState.DISCOVERABLE)
+
+            hid.on_connection(on_bt_event)
+            hid.on_disconnection(on_bt_event)
+            await hid.start()
+            await gpio.set_bluetooth_state(BlueState.IDLE)
+        except Exception as exc:
+            log.error("Bluetooth HID startup warning: %s", exc)
 
         # ── All up — green solid ──────────────────────────────────────────────
         await gpio.set_green_state(GreenState.ON)
