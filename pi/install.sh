@@ -102,13 +102,24 @@ success "BlueZ configured"
 
 # ── Step 4: Install cloudflared ───────────────────────────────────────────────
 info "Installing cloudflared…"
-ARCH=$(dpkg --print-architecture)
-CF_URL="https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${ARCH}.deb"
-if wget -q -O /tmp/cloudflared.deb "$CF_URL" 2>/dev/null; then
-    dpkg -i /tmp/cloudflared.deb 2>/dev/null || true
-    success "cloudflared installed"
+if [ "$(uname -m)" = "armv6l" ]; then
+    info "Detected ARMv6 architecture (Pi Zero W) — using standalone ARM binary…"
+    if wget -q -O /usr/local/bin/cloudflared "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm" 2>/dev/null; then
+        chmod +x /usr/local/bin/cloudflared
+        ln -sf /usr/local/bin/cloudflared /usr/bin/cloudflared 2>/dev/null || true
+        success "cloudflared installed (/usr/local/bin/cloudflared)"
+    else
+        warn "cloudflared download failed — you can install it manually later"
+    fi
 else
-    warn "cloudflared download failed — you can install it manually later"
+    ARCH=$(dpkg --print-architecture)
+    CF_URL="https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${ARCH}.deb"
+    if wget -q -O /tmp/cloudflared.deb "$CF_URL" 2>/dev/null; then
+        dpkg -i /tmp/cloudflared.deb 2>/dev/null || true
+        success "cloudflared installed"
+    else
+        warn "cloudflared download failed — you can install it manually later"
+    fi
 fi
 
 # ── Step 5: Create directories ────────────────────────────────────────────────
