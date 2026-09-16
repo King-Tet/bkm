@@ -605,7 +605,7 @@ const CONSUMER_MAP = {
   playpause: 0x08,  mute: 0x10,       volumeup: 0x20,
   volumedown: 0x40, eject: 0x80,      fastforward: 0x100,
   rewind: 0x200,    calculator: 0x800, browser: 0x1000,
-  browsersearch: 0x2000, browserhome: 0x4000, browserback: 0x8000,
+  email: 0x2000,    pause: 0x4000,    record: 0x8000,
 };
 function sendConsumer(name) {
   const bitmask = CONSUMER_MAP[name] || 0;

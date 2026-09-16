@@ -30,13 +30,15 @@ GPIO 18  → Button (one leg to GPIO 18, other to GND)
 
 ## OS Setup
 
-> **Required OS:** Raspberry Pi OS Lite, 64-bit (Bookworm)
+> **Required OS:** Raspberry Pi OS Lite, **32-bit** (Bookworm)
+> The Pi Zero W has an ARMv6 chip and does **not** support 64-bit OS.
 > Download from: https://www.raspberrypi.com/software/
+> In Raspberry Pi Imager, select: **Raspberry Pi OS (other) → Raspberry Pi OS Lite (32-bit)**
 
 1. Flash the image to your SD card using Raspberry Pi Imager
 2. In Imager settings (⚙ icon), set:
    - Hostname: `bt-kbm`
-   - Enable SSH
+   - Enable SSH → Use password authentication
    - Set your WiFi SSID + password (so Pi can connect on first boot)
    - Set username/password (e.g. `pi` / your password)
 3. Boot the Pi, SSH in: `ssh pi@bt-kbm.local`
@@ -46,9 +48,12 @@ GPIO 18  → Button (one leg to GPIO 18, other to GND)
 ## Installation
 
 ```bash
+# Install git first (not included in Raspberry Pi OS Lite)
+sudo apt-get update && sudo apt-get install -y git
+
 # Clone this repo to the Pi
-git clone https://github.com/YOUR_USER/bt-kbm.git
-cd bt-kbm/pi
+git clone https://github.com/King-Tet/bkm.git
+cd bkm/pi
 
 # Run the installer (takes ~3 minutes)
 sudo bash install.sh

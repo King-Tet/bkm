@@ -162,12 +162,12 @@ CONS_VOL_DOWN       = (1 << 6)
 CONS_EJECT          = (1 << 7)
 CONS_FAST_FORWARD   = (1 << 8)
 CONS_REWIND         = (1 << 9)
-CONS_STOP_EJECT     = (1 << 10)
+CONS_STOP_EJECT     = (1 << 10)  # AL Consumer Control Config
 CONS_CALCULATOR     = (1 << 11)
 CONS_BROWSER        = (1 << 12)
-CONS_BROWSER_SEARCH = (1 << 13)
-CONS_BROWSER_HOME   = (1 << 14)
-CONS_BROWSER_BACK   = (1 << 15)
+CONS_EMAIL          = (1 << 13)  # AL Email Reader
+CONS_PAUSE          = (1 << 14)  # Pause (not Play/Pause)
+CONS_RECORD         = (1 << 15)
 
 # ── Mouse button bitmasks (byte 0 of mouse report) ──────────────────────────
 MOUSE_BTN_LEFT   = 0x01
@@ -314,9 +314,9 @@ CONSUMER_NAME_MAP: dict[str, int] = {
     "rewind":        CONS_REWIND,
     "calculator":    CONS_CALCULATOR,
     "browser":       CONS_BROWSER,
-    "browsersearch": CONS_BROWSER_SEARCH,
-    "browserhome":   CONS_BROWSER_HOME,
-    "browserback":   CONS_BROWSER_BACK,
+    "email":         CONS_EMAIL,
+    "pause":         CONS_PAUSE,
+    "record":        CONS_RECORD,
 }
 
 

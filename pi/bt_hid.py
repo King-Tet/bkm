@@ -132,11 +132,12 @@ HID_REPORT_DESCRIPTOR = bytes([
     0x09, 0xB8,        #   Usage (Eject)
     0x09, 0xB3,        #   Usage (Fast Forward)
     0x09, 0xB4,        #   Usage (Rewind)
-    0x09, 0x83,        #   Usage (AL Consumer Control Config)
-    0x09, 0x92,        #   Usage (AL Calculator)
-    0x09, 0x94,        #   Usage (AL Local Machine Browser)
-    0x09, 0x8A,        #   Usage (AL Email Reader)
-    0x09, 0x221,       #   Usage (AC Search) -- 2 bytes
+    0x09, 0x83,        #   Usage (AL Consumer Control Config) bit 10
+    0x09, 0x92,        #   Usage (AL Calculator)               bit 11
+    0x09, 0x94,        #   Usage (AL Local Machine Browser)    bit 12
+    0x09, 0x8A,        #   Usage (AL Email Reader)             bit 13
+    0x09, 0xB1,        #   Usage (Pause)                       bit 14
+    0x09, 0xB2,        #   Usage (Record)                      bit 15
     0x81, 0x02,        #   Input (Data, Var, Abs)
     0xC0,              # End Collection
 ])
