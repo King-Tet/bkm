@@ -1,0 +1,52 @@
+# Cloudflare Tunnel Configuration for BT-KBM
+# Place this file at: ~/.cloudflared/config.yml  (on the Pi)
+#
+# Steps to set up the tunnel:
+#
+# 1. On the Pi, authenticate with Cloudflare:
+#       cloudflared tunnel login
+#
+# 2. Create a named tunnel:
+#       cloudflared tunnel create bt-kbm
+#    (This outputs a tunnel UUID — note it down)
+#
+# 3. Route your domain to the tunnel:
+#       cloudflared tunnel route dns bt-kbm kbm.play-tap.com
+#
+# 4. Copy the credentials file UUID from ~/.cloudflared/<UUID>.json
+#    and put the UUID in the "tunnel:" field below.
+#
+# 5. Start the tunnel:
+#       cloudflared tunnel run bt-kbm
+#    Or use the token method (paste token into BT-KBM Settings page).
+#
+# 6. To run as a system service:
+#       cloudflared service install
+#       systemctl start cloudflared
+#
+# ALTERNATIVE (token method — easiest):
+#   a. Go to Cloudflare Zero Trust → Networks → Tunnels → Create tunnel
+#   b. Give it a name (e.g. "bt-kbm")
+#   c. Copy the token shown during setup
+#   d. Paste it into the BT-KBM dashboard Settings → "Cloudflare Tunnel Token"
+#   e. The Pi will run cloudflared automatically using that token.
+#   f. In the tunnel config, add a Public Hostname:
+#      - Subdomain: kbm
+#      - Domain: play-tap.com
+#      - Service: http://localhost:8080
+# ─────────────────────────────────────────────────────────────────────────────
+
+tunnel: YOUR-TUNNEL-UUID-HERE
+credentials-file: /root/.cloudflared/YOUR-TUNNEL-UUID-HERE.json
+
+ingress:
+  - hostname: kbm.play-tap.com
+    service: http://localhost:8080
+    originRequest:
+      noTLSVerify: false
+      connectTimeout: 10s
+      # WebSocket support (required for dashboard real-time updates)
+      httpHostHeader: kbm.play-tap.com
+
+  # Catch-all (required by cloudflared)
+  - service: http_status:404

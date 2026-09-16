@@ -1,0 +1,25 @@
+[Unit]
+Description=BT-KBM Bluetooth Virtual Keyboard & Mouse
+Documentation=https://kbm.play-tap.com
+After=network-online.target bluetooth.target
+Wants=network-online.target bluetooth.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/bt-kbm
+ExecStart=/opt/bt-kbm/venv/bin/python3 /opt/bt-kbm/main.py
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=5
+StartLimitInterval=60
+StartLimitBurst=5
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/opt/bt-kbm
+# Allow Bluetooth socket operations
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+
+[Install]
+WantedBy=multi-user.target
