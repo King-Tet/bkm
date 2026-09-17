@@ -321,19 +321,32 @@ class BtHIDDaemon:
     # ── Internal: BlueZ setup ─────────────────────────────────────────────────
 
     async def _configure_adapter(self) -> None:
-        """Find the adapter, set name, power it on."""
+        """Find the adapter, set name, power it on.
+
+        Retries for up to 30 s because bluetoothd (and especially the Pi Zero W
+        onboard hci0) can take several seconds to appear on D-Bus after boot.
+        """
         manager = dbus.Interface(
             self._bus.get_object(BUS_NAME, "/"),
             "org.freedesktop.DBus.ObjectManager",
         )
-        objects = await asyncio.to_thread(manager.GetManagedObjects)
         adapter_path = None
-        for path, ifaces in objects.items():
-            if ADAPTER_IFACE in ifaces:
-                adapter_path = path
+        for attempt in range(15):  # 15 × 2 s = 30 s max
+            try:
+                objects = await asyncio.to_thread(manager.GetManagedObjects)
+                for path, ifaces in objects.items():
+                    if ADAPTER_IFACE in ifaces:
+                        adapter_path = path
+                        break
+            except Exception as exc:
+                log.warning("D-Bus GetManagedObjects failed (attempt %d/15): %s", attempt + 1, exc)
+            if adapter_path:
                 break
+            log.info("Waiting for BT adapter on D-Bus… (attempt %d/15)", attempt + 1)
+            await asyncio.sleep(2)
         if not adapter_path:
-            raise RuntimeError("No Bluetooth adapter found via D-Bus")
+            raise RuntimeError("No Bluetooth adapter found via D-Bus after 30 s — "
+                               "check that bluetooth.service is running and hci0 is up")
 
         self._adapter = dbus.Interface(
             self._bus.get_object(BUS_NAME, adapter_path), ADAPTER_IFACE
