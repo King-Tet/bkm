@@ -199,6 +199,12 @@ class BtHIDDaemon:
         """Make device discoverable and pairable."""
         if timeout is None:
             timeout = int(await self.state.get_setting("bt_discoverable_timeout", "120"))
+        # Lazy-init: adapter may not have been available at boot time
+        if self._adapter_props is None:
+            log.info("BT adapter not yet configured — attempting now…")
+            await self._configure_adapter()
+        if self._adapter_props is None:
+            raise RuntimeError("Bluetooth adapter unavailable — is bluetooth.service running?")
         await asyncio.to_thread(self._set_adapter_props, {
             "Discoverable": dbus.Boolean(True),
             "Pairable":     dbus.Boolean(True),
@@ -433,6 +439,7 @@ class BtHIDDaemon:
                     await asyncio.sleep(1)
             except asyncio.CancelledError:
                 break
+
 
     async def _monitor_connection(self, mac: str) -> None:
         """Watch for HID client disconnect."""

@@ -322,11 +322,11 @@ async function doLogin() {
 // ─── Bluetooth ────────────────────────────────────────────────────────────────
 async function togglePairing() {
   if (STATE.btDiscoverable) {
-    await api('POST', '/api/bt/stop-pair');
-    toast('info', 'Pairing stopped');
+    const r = await api('POST', '/api/bt/stop-pair');
+    if (r) toast('info', 'Pairing stopped');
   } else {
-    await api('POST', '/api/bt/pair', { timeout: 120 });
-    toast('info', 'Now discoverable for 120s…');
+    const r = await api('POST', '/api/bt/pair', { timeout: 120 });
+    if (r) toast('info', 'Now discoverable for 120s…');
   }
 }
 

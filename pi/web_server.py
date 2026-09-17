@@ -331,7 +331,7 @@ class WebServer:
                 await ws.send_json(msg)
             except Exception:
                 dead.add(ws)
-        WS_CLIENTS -= dead
+        WS_CLIENTS.difference_update(dead)  # mutate in place; -= rebinds as local in Py3.13
 
     async def _build_state(self) -> dict:
         wifi_status = await self.wifi.get_status()
