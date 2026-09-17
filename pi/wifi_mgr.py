@@ -106,8 +106,12 @@ class WiFiManager:
                     await self._disconnect()
 
         # 3. Fall back to AP mode
-        log.warning("No networks found — starting AP mode")
-        await self.start_ap()
+        log.warning("No networks found — attempting AP mode")
+        try:
+            await self.start_ap()
+        except Exception as exc:
+            log.warning("AP mode could not start (hostapd masked or unavailable): %s — "
+                        "dashboard will still be available via existing network IP", exc)
         return False
 
     async def connect(self, ssid: str, psk: str | None = None) -> bool:
@@ -142,9 +146,23 @@ class WiFiManager:
         ch   = await self.state.get_setting("ap_channel", "6")
         await self._write_hostapd_conf(ssid, pwd, ch)
         await self._write_dnsmasq_conf()
-        await _run(["sudo", "ifconfig", IFACE, AP_IP])
-        await _run(["sudo", "systemctl", "start", "hostapd"])
-        await _run(["sudo", "systemctl", "start", "dnsmasq"])
+        try:
+            await _run(["sudo", "ifconfig", IFACE, AP_IP])
+        except Exception as exc:
+            log.warning("ifconfig failed (non-fatal): %s", exc)
+        # Unmask hostapd if it is masked, then start it
+        try:
+            await _run(["sudo", "systemctl", "unmask", "hostapd"])
+        except Exception:
+            pass  # may already be unmasked
+        try:
+            await _run(["sudo", "systemctl", "start", "hostapd"])
+        except Exception as exc:
+            raise RuntimeError(f"hostapd could not start: {exc}") from exc
+        try:
+            await _run(["sudo", "systemctl", "start", "dnsmasq"])
+        except Exception as exc:
+            log.warning("dnsmasq start failed (non-fatal): %s", exc)
         self._ap_active = True
         log.info("AP mode started: ssid=%s", ssid)
 

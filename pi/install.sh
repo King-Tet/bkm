@@ -53,6 +53,9 @@ success "System packages installed"
 info "Stopping conflicting services…"
 systemctl stop hostapd  2>/dev/null || true
 systemctl stop dnsmasq  2>/dev/null || true
+# Unmask first (Bookworm/Trixie ships hostapd masked by default)
+systemctl unmask hostapd 2>/dev/null || true
+systemctl unmask dnsmasq 2>/dev/null || true
 systemctl disable hostapd 2>/dev/null || true
 systemctl disable dnsmasq 2>/dev/null || true
 
