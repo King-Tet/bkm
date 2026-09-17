@@ -1275,17 +1275,26 @@ function ts(unix) {
   return d.toLocaleTimeString();
 }
 
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   buildVirtualKeyboard();
   setupTrackpad();
-  connectWS();
 
-  // Fetch initial state via REST (before WS connects)
-  api('GET', '/api/status').then(data => {
-    if (data) applyState(data);
-  });
-  loadLogs();
+  // Wire up login form
+  document.getElementById('login-form')
+    ?.addEventListener('submit', e => { e.preventDefault(); doLogin(); });
+
+  // Show login overlay if no session token stored
+  const token = sessionStorage.getItem('ws_token');
+  if (!token) {
+    showLoginOverlay();
+  } else {
+    hideLoginOverlay();
+    connectWS();
+    api('GET', '/api/status').then(data => { if (data) applyState(data); });
+    loadLogs();
+  }
 
   // Ping WS every 30s
   setInterval(() => wsSend({ type: 'ping' }), 30000);
