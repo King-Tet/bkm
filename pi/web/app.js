@@ -254,6 +254,7 @@ async function api(method, path, body) {
   try {
     const opts = {
       method,
+      credentials: 'same-origin',   // always send stored Basic Auth header
       headers: { 'Content-Type': 'application/json' },
     };
     if (body !== undefined) opts.body = JSON.stringify(body);
