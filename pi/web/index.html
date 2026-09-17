@@ -684,6 +684,40 @@
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toast-container"></div>
 
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay" style="display:none;position:fixed;inset:0;background:rgba(5,5,15,0.95);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(6px);">
+  <div style="background:#1e1e2e;border:1px solid rgba(99,102,241,0.35);border-radius:18px;padding:44px 40px;width:340px;box-shadow:0 24px 80px rgba(0,0,0,0.7);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:30px;">
+      <svg viewBox="0 0 28 28" fill="none" style="width:34px;height:34px;flex-shrink:0;"><rect width="28" height="28" rx="7" fill="#6366f1"/><path d="M8 7h3l5 7-5 7H8l5-7-5-7zm5 0h3v14h-3V7z" fill="white"/></svg>
+      <div>
+        <div style="font-size:1.25rem;font-weight:700;color:#e2e8f0;line-height:1.2;">BT-KBM</div>
+        <div style="font-size:0.75rem;color:#64748b;letter-spacing:.04em;">Dashboard Login</div>
+      </div>
+    </div>
+    <form id="login-form">
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Username</label>
+        <input id="login-username" type="text" value="admin" autocomplete="username"
+          style="width:100%;padding:10px 13px;background:#0d0d1a;border:1px solid rgba(99,102,241,0.25);border-radius:8px;color:#e2e8f0;font-size:0.92rem;box-sizing:border-box;outline:none;transition:border-color .15s;"
+          onfocus="this.style.borderColor='rgba(99,102,241,0.7)'" onblur="this.style.borderColor='rgba(99,102,241,0.25)'">
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Password</label>
+        <input id="login-password" type="password" placeholder="Enter password" autocomplete="current-password"
+          style="width:100%;padding:10px 13px;background:#0d0d1a;border:1px solid rgba(99,102,241,0.25);border-radius:8px;color:#e2e8f0;font-size:0.92rem;box-sizing:border-box;outline:none;transition:border-color .15s;"
+          onfocus="this.style.borderColor='rgba(99,102,241,0.7)'" onblur="this.style.borderColor='rgba(99,102,241,0.25)'">
+      </div>
+      <div id="login-error" style="color:#f87171;font-size:0.82rem;min-height:1.4em;margin-bottom:10px;padding:0 2px;"></div>
+      <button id="login-btn" type="submit"
+        style="width:100%;padding:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:9px;color:white;font-size:0.97rem;font-weight:600;cursor:pointer;transition:opacity .18s,transform .1s;letter-spacing:.01em;"
+        onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'"
+        onmousedown="this.style.transform='scale(.98)'" onmouseup="this.style.transform=''">
+        Sign in →
+      </button>
+    </form>
+  </div>
+</div>
+
 <script src="/static/app.js"></script>
 </body>
 </html>

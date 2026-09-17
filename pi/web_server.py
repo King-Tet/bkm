@@ -72,11 +72,12 @@ class WebServer:
 
     @web.middleware
     async def _auth_middleware(self, request: web.Request, handler):
-        # Skip auth for static SPA assets (but not API)
-        if request.path.startswith("/static/") or request.path == "/favicon.ico":
+        path = request.path
+        # Always public: SPA shell, static assets, login endpoint
+        if path == "/" or path.startswith("/static/") or path == "/favicon.ico" or path == "/api/login":
             return await handler(request)
 
-        # WebSocket upgrade: check token in query param OR Basic Auth
+        # WebSocket upgrade: check token query param
         if request.headers.get("Upgrade", "").lower() == "websocket":
             token = request.rel_url.query.get("token", "")
             if await self._check_token(token):
@@ -84,6 +85,13 @@ class WebServer:
             return web.Response(status=401, text="Unauthorized")
 
         auth = request.headers.get("Authorization", "")
+
+        # Bearer token (JS login flow — preferred)
+        if auth.startswith("Bearer "):
+            if await self._check_token(auth[7:]):
+                return await handler(request)
+
+        # Basic Auth (backward compat / CLI / curl)
         if auth.startswith("Basic "):
             try:
                 decoded = base64.b64decode(auth[6:]).decode()
@@ -92,6 +100,7 @@ class WebServer:
                     return await handler(request)
             except Exception:
                 pass
+
         return web.Response(
             status=401,
             headers={"WWW-Authenticate": 'Basic realm="BT-KBM Dashboard"'},
@@ -123,6 +132,9 @@ class WebServer:
 
         # WebSocket hub
         r.add_get("/ws",      self._handle_ws)
+
+        # API — auth
+        r.add_post("/api/login",          self._api_login)
 
         # API — status
         r.add_get("/api/status",         self._api_status)
@@ -346,6 +358,23 @@ class WebServer:
                           "open_network_autoconnect", "auto_reconnect_bt")
             },
         }
+
+    # ── API: Auth ─────────────────────────────────────────────────────────────
+
+    async def _api_login(self, request: web.Request) -> web.Response:
+        """No-auth endpoint: verify credentials, return session token."""
+        body = await _body(request)
+        username = body.get("username", "")
+        password = body.get("password", "")
+        if await self._check_credentials(username, password):
+            # The password hash IS the session token (checked by _check_token)
+            token = await self.state.get_setting("dashboard_password_hash", "")
+            return _json({"ok": True, "token": token})
+        return web.Response(
+            status=401,
+            body=b'{"ok":false,"message":"Invalid username or password"}',
+            content_type="application/json",
+        )
 
     # ── API: Status ───────────────────────────────────────────────────────────
 

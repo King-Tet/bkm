@@ -251,19 +251,71 @@ function updateTopbarLED(id, state, color) {
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
 async function api(method, path, body) {
+  const token = sessionStorage.getItem('ws_token') || '';
   try {
     const opts = {
       method,
-      credentials: 'same-origin',   // always send stored Basic Auth header
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+      },
     };
     if (body !== undefined) opts.body = JSON.stringify(body);
     const r = await fetch(path, opts);
+    if (r.status === 401) {
+      sessionStorage.removeItem('ws_token');
+      showLoginOverlay();
+      throw new Error('Session expired — please log in again');
+    }
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return await r.json();
   } catch (e) {
     toast('error', `API error: ${e.message}`);
     return null;
+  }
+}
+
+// ─── Login overlay ─────────────────────────────────────────────────────
+
+function showLoginOverlay() {
+  const el = document.getElementById('login-overlay');
+  if (el) el.style.display = 'flex';
+}
+
+function hideLoginOverlay() {
+  const el = document.getElementById('login-overlay');
+  if (el) el.style.display = 'none';
+}
+
+async function doLogin() {
+  const username = (document.getElementById('login-username')?.value || '').trim();
+  const password = document.getElementById('login-password')?.value || '';
+  const errEl = document.getElementById('login-error');
+  const btn   = document.getElementById('login-btn');
+  if (errEl) errEl.textContent = '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+
+  try {
+    const r = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      if (errEl) errEl.textContent = d.message || 'Invalid username or password.';
+      return;
+    }
+    const data = await r.json();
+    sessionStorage.setItem('ws_token', data.token);
+    hideLoginOverlay();
+    connectWS();
+    api('GET', '/api/status').then(d => { if (d) applyState(d); });
+    loadLogs();
+  } catch (e) {
+    if (errEl) errEl.textContent = 'Login failed: ' + e.message;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Sign in →'; }
   }
 }
 
